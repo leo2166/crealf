@@ -9,12 +9,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pages: write
-      id-token: write
+      contents: write # Permiso para escribir en el repositorio (para gh-pages)
+      pages: write # Permiso para desplegar en GitHub Pages
+      id-token: write # Necesario para la autenticación en páginas
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Añade esta línea para asegurar la autenticación al clonar el repositorio
+          token: ${{ secrets.GITHUB_TOKEN }} 
 
       - uses: subosito/flutter-action@v2
         with:
@@ -23,28 +26,28 @@ jobs:
       - name: 'Flutter clean'
         run: flutter clean
 
-      - name: 'Enable Flutter web config'
-        run: flutter config --enable-web
-
       - name: 'Get Flutter dependencies'
         run: flutter pub get
 
+      - name: 'Install web development dependencies (if any)'
+        run: dart pub global activate webdev || echo "webdev not installed or not needed"
+
       - name: 'Build Flutter web'
         run: |
-          mkdir -p build/web # Asegura que el directorio exista (aunque flutter build lo haría)
+          mkdir -p build/web
           flutter build web --release --base-href /crealf/
-          # Verificar si index.html existe después de la compilación
           if [ ! -f build/web/index.html ]; then
             echo "Error: index.html not found in build/web/ after compilation."
-            ls -R build/ # Lista todo el contenido del directorio build para depuración
+            echo "Contents of build/:"
+            ls -R build/ || true
             exit 1
           fi
           echo "index.html successfully generated."
-          ls -la build/web/ # Confirma el contenido
+          ls -la build/web/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
-          cname:
+          cname: # Deja vacío si no usas dominio personalizado
