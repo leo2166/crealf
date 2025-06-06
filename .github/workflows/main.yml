@@ -34,6 +34,15 @@ jobs:
 
       - name: 'Build Flutter web'
         run: |
+          echo "----------------------------------------------------"
+          echo "Diagnóstico inicial del directorio de trabajo y contenido:"
+          echo "Directorio de trabajo actual:"
+          pwd # Muestra el directorio actual
+
+          echo "Contenido del directorio raíz del repositorio antes de la compilación:"
+          ls -laR . # Lista todo el contenido del repositorio de forma recursiva.
+          echo "----------------------------------------------------"
+
           echo "Iniciando compilación web de Flutter..."
           # Intenta compilar la aplicación Flutter para la web.
           # --release para una compilación optimizada.
@@ -49,8 +58,10 @@ jobs:
           if [ ! -f build/web/index.html ]; then
             echo "****************************************************"
             echo "ADVERTENCIA: 'index.html' NO FUE GENERADO por 'flutter build web'."
-            echo "Copiando 'web/index.html' a 'build/web/' como contingencia."
-            cp web/index.html build/web/index.html # <--- LÍNEA AÑADIDA CLAVE EN EL MENSAJE ANTERIOR
+            echo "Intentando copiar 'web/index.html' a 'build/web/' como contingencia."
+            # Asegúrate de que build/web existe antes de intentar copiar
+            mkdir -p build/web
+            cp web/index.html build/web/index.html # <--- LÍNEA DE COPIA AÑADIDA
             echo "****************************************************"
             
             # Si aún así no existe después de la copia, entonces sí hay un problema grave.
