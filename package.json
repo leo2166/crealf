@@ -2,8 +2,8 @@
   "name": "crealf-app",
   "version": "1.0.0",
   "scripts": {
-    "install-flutter": "git clone https://github.com/flutter/flutter.git --depth 1 -b stable && ./flutter/bin/flutter precache",
-    "build": "npm run install-flutter && ./flutter/bin/flutter build web --release"
+    "install-flutter": "git clone https://github.com/flutter/flutter.git --depth 1 -b stable ./flutter && ./flutter/bin/flutter precache",
+    "build": "export PATH=\"$PWD/flutter/bin:$PATH\" && ./flutter/bin/flutter build web --release --base-href /crealf/"
   },
   "dependencies": {
     "flutter_sdk": ">=3.0.0"
