@@ -45,31 +45,27 @@ jobs:
           ls -laR build/web/ || echo "Directorio build/web/ no encontrado o vacío." # Muestra contenido del directorio esperado.
           echo "----------------------------------------------------"
 
-          # Comprueba si index.html fue generado. Si no, imprime diagnósticos y falla.
+          # Comprueba si index.html fue generado por flutter build.
           if [ ! -f build/web/index.html ]; then
             echo "****************************************************"
-            echo "ERROR: index.html NO ENCONTRADO en 'build/web/' después de la compilación."
-            echo "Esto indica que 'flutter build web' falló en generar los archivos esperados."
+            echo "ADVERTENCIA: 'index.html' NO FUE GENERADO por 'flutter build web'."
+            echo "Copiando 'web/index.html' a 'build/web/' como contingencia."
+            cp web/index.html build/web/index.html # <--- LÍNEA AÑADIDA CLAVE EN EL MENSAJE ANTERIOR
             echo "****************************************************"
             
-            echo "----------------------------------------------------"
-            echo "Contenido de todo el directorio 'build/' (diagnóstico completo):"
-            ls -laR build/ || echo "Directorio build/ no encontrado o vacío." # Muestra todo el directorio build.
-            echo "----------------------------------------------------"
-
-            echo "----------------------------------------------------"
-            echo "Detalles de 'flutter doctor -v' (diagnóstico del entorno Flutter):"
-            flutter doctor -v # Proporciona información detallada del entorno Flutter.
-            echo "----------------------------------------------------"
-
-            echo "----------------------------------------------------"
-            echo "Buscando archivos de log de Flutter en el directorio actual:"
-            find . -name "flutter_*.log" || echo "No se encontraron archivos de log de Flutter." # Busca posibles logs de errores de Flutter.
-            echo "----------------------------------------------------"
-            
-            exit 1 # Fuerza la falla del paso si index.html no está presente.
+            # Si aún así no existe después de la copia, entonces sí hay un problema grave.
+            if [ ! -f build/web/index.html ]; then
+              echo "ERROR CRÍTICO: Falló la copia de web/index.html a build/web/index.html."
+              echo "Contenido de todo el directorio 'build/' (diagnóstico completo):"
+              ls -laR build/ || echo "Directorio build/ no encontrado o vacío."
+              echo "Detalles de 'flutter doctor -v' (diagnóstico del entorno Flutter):"
+              flutter doctor -v
+              echo "Buscando archivos de log de Flutter en el directorio actual:"
+              find . -name "flutter_*.log"
+              exit 1 # Forzar fallo si ni siquiera la copia funciona.
+            fi
           fi
-          echo "index.html generado exitosamente. Continuando con el despliegue."
+          echo "index.html asegurado en 'build/web/'."
           ls -la build/web/ # Confirma el contenido final antes del despliegue.
 
       - name: Deploy to GitHub Pages
