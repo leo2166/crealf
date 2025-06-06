@@ -3,11 +3,15 @@ name: Deploy Flutter Web to GitHub Pages
 on:
   push:
     branches:
-      - main # ¡IMPORTANTE! Asegúrate de que esta es tu rama principal (main o master)
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions: # Añadimos esto para darle permisos a la acción
+      contents: write # Permiso para escribir en el repositorio (para gh-pages)
+      pages: write # Permiso para desplegar en GitHub Pages
+      id-token: write # Necesario para la autenticación en páginas
 
     steps:
       - uses: actions/checkout@v4
@@ -16,10 +20,10 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: 'Flutter clean' # Añadido: Limpia el proyecto
+      - name: 'Flutter clean'
         run: flutter clean
 
-      - name: 'Enable Flutter web config' # Añadido: Asegura la configuración web
+      - name: 'Enable Flutter web config'
         run: flutter config --enable-web
 
       - name: 'Get Flutter dependencies'
@@ -28,11 +32,13 @@ jobs:
       - name: 'Build Flutter web'
         run: |
           flutter build web --release --base-href /crealf/
-          ls -la build/web/ # Este comando nos ayudará a verificar la salida
+          ls -la build/web/ # Dejamos esto para verificar la salida en los logs
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
+          # user_name: 'github-actions[bot]'
+          # user_email: 'github-actions[bot]@users.noreply.github.com'
           cname:
