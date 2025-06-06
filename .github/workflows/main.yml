@@ -10,23 +10,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4 # Clona tu repositorio
+      - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2 # Configura Flutter SDK
+      - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable' # Puedes usar 'beta' o 'dev' si lo necesitas
+          channel: 'stable'
 
       - name: 'Get Flutter dependencies'
         run: flutter pub get
 
       - name: 'Build Flutter web'
-        run: flutter build web --release --base-href /crealf/ # ¡IMPORTANTE! AJUSTA ESTA URL
+        # Comando actualizado para asegurar la salida correcta
+        run: |
+          flutter build web --release --base-href /crealf/
+          ls -la build/web/ # Añadimos este comando para depuración, veremos qué hay en la carpeta
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
-          # user_name: 'github-actions[bot]' # Opcional: Nombre del bot de GitHub
-          # user_email: 'github-actions[bot]@users.noreply.github.com' # Opcional: Email del bot de GitHub
-          cname: # Deja vacío si no usas dominio personalizado
+          # user_name: 'github-actions[bot]'
+          # user_email: 'github-actions[bot]@users.noreply.github.com'
+          cname:
