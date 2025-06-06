@@ -16,20 +16,23 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: 'Flutter clean' # Añadido: Limpia el proyecto
+        run: flutter clean
+
+      - name: 'Enable Flutter web config' # Añadido: Asegura la configuración web
+        run: flutter config --enable-web
+
       - name: 'Get Flutter dependencies'
         run: flutter pub get
 
       - name: 'Build Flutter web'
-        # Comando actualizado para asegurar la salida correcta
         run: |
           flutter build web --release --base-href /crealf/
-          ls -la build/web/ # Añadimos este comando para depuración, veremos qué hay en la carpeta
+          ls -la build/web/ # Este comando nos ayudará a verificar la salida
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
-          # user_name: 'github-actions[bot]'
-          # user_email: 'github-actions[bot]@users.noreply.github.com'
           cname:
