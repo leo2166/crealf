@@ -1,0 +1,32 @@
+name: Deploy Flutter Web to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main # ¡IMPORTANTE! Asegúrate de que esta es tu rama principal (main o master)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4 # Clona tu repositorio
+
+      - uses: subosito/flutter-action@v2 # Configura Flutter SDK
+        with:
+          channel: 'stable' # Puedes usar 'beta' o 'dev' si lo necesitas
+
+      - name: 'Get Flutter dependencies'
+        run: flutter pub get
+
+      - name: 'Build Flutter web'
+        run: flutter build web --release --base-href /crealf/ # ¡IMPORTANTE! AJUSTA ESTA URL
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          # user_name: 'github-actions[bot]' # Opcional: Nombre del bot de GitHub
+          # user_email: 'github-actions[bot]@users.noreply.github.com' # Opcional: Email del bot de GitHub
+          cname: # Deja vacío si no usas dominio personalizado
