@@ -31,7 +31,14 @@ jobs:
 
       - name: Construir aplicación Flutter web
         run: |
-          flutter build web --release --base-href=/crealf/ # Asegúrate que '/crealf/' es el base-href correcto para tu sitio GitHub Pages
+          echo "Iniciando compilación web de Flutter con modo verbose..."
+          flutter build web --release --base-href=/crealf/ --verbose
+
+          echo "Contenido del directorio 'build/' después de la compilación:"
+          ls -R build/
+
+          echo "Contenido del directorio 'build/web/' después de la compilación:"
+          ls -la build/web/ sitio GitHub Pages
 
       - name: Cargar artefacto para despliegue en Pages
         uses: actions/upload-pages-artifact@v3
