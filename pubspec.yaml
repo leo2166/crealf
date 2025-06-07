@@ -6,7 +6,7 @@ version: 1.0.0+1
 
 environment:
   sdk: '>=3.8.1 <4.0.0' # AJUSTADO: Usa la versión de Dart 3.10.0 (estable con Flutter 3.22.x)
-
+  flutter: '>=3.22.2 <4.0.0' 
 dependencies:
   flutter:
     sdk: flutter
