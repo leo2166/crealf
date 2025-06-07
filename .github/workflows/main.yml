@@ -1,4 +1,4 @@
-name: Deploy Flutter Web to GitHub Pages
+name: Implementar Flutter web en Github Pages
 
 on:
   push:
@@ -9,114 +9,42 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Permiso para escribir en el repositorio (para gh-pages)
-      pages: write # Permiso para desplegar en GitHub Pages
-      id-token: write # Necesario para la autenticación en páginas
+      contents: write # Permiso para escribir en el repositorio (necesario para el artifact)
+      pages: write    # Permiso necesario para desplegar en GitHub Pages
+      id-token: write # Necesario para la autenticación en GitHub Pages
 
     steps:
-      - name: Checkout repository
+      - name: Checkout del repositorio
         uses: actions/checkout@v4
         with:
-          # Asegura la autenticación al clonar el repositorio, crucial para permisos de escritura.
-          token: ${{ secrets.GITHUB_TOKEN }} 
+          token: ${{ secrets.GITHUB_TOKEN }} # Asegura la autenticación al clonar el repositorio, crucial para permisos de escritura.
 
-      - name: Initial Environment & Directory Check
-        run: |
-          echo "--- Initial Environment Check ---"
-          echo "Current working directory:"
-          pwd # Muestra el directorio actual
-
-          echo "Listing contents of the root directory (recursively):"
-          ls -laR . # Lista todo el contenido del repositorio de forma recursiva.
-          echo "Checking if 'web/index.html' exists at the root:"
-          test -f web/index.html && echo "web/index.html FOUND" || echo "web/index.html NOT FOUND"
-          echo "-----------------------------------"
-
-      - name: Setup Flutter
+      - name: Configurar Flutter SDK
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable' # Puedes probar 'beta' o 'dev' si tu proyecto lo requiere, o una versión específica como '3.19.6'
+          channel: 'stable' # O 'beta' si estás usando ese canal de Flutter
 
-      - name: Flutter clean and Get dependencies
+      - name: Obtener dependencias de Flutter
         run: |
-          echo "--- Running Flutter clean ---"
           flutter clean
-          echo "--- Getting Flutter dependencies ---"
           flutter pub get
 
-     jobs:
-  build:
-    runs-on: ubuntu-latest # O el runner que estés usando
-
-    steps:
-      - uses: actions/checkout@v4 # Asegúrate de que esta línea esté presente
-      # ... (otros pasos como Initial Environment & Directory Check, Setup Flutter, Flutter clean y Get dependencies) ...
-
-      - name: Build Flutter web # Este es el nombre del paso que estamos modificando
+      - name: Construir aplicación Flutter web
         run: |
-          # Elimina cualquier línea que intente crear el directorio build/web explícitamente
-          # (Flutter build ya lo hace).
-          # Elimina también el bloque 'if [ ! -f build/web/index.html ]; then' y el 'exit 1'.
+          flutter build web --release --base-href=/crealf/ # Asegúrate que '/crealf/' es el base-href correcto para tu sitio GitHub Pages
 
-          # Esta es la única línea crucial para la compilación web
-          flutter build web --release --base-href=/crealf/-verbose --target=lib/main.dart > flutter_build_web_log.txt 2>&1
-          BUILD_EXIT_CODE=$? # Captura el código de salida del comando flutter build
-          
-          echo "--- Flutter web build completed with exit code: $BUILD_EXIT_CODE ---"
-          echo "Content of flutter_build_web_log.txt (verbose output):"
-          cat flutter_build_web_log.txt # Muestra el log completo de la compilación
-          echo "--------------------------------------------------------"
-
-          echo "--- Checking build/web/ contents after Flutter build ---"
-          ls -laR build/web/ || echo "build/web/ directory not found or empty after build."
-          echo "--------------------------------------------------------"
-
-          # Comprueba si index.html fue generado por flutter build.
-          if [ ! -f build/web/index.html ]; then
-            echo "********************************************************"
-            echo "ADVERTENCIA: 'index.html' NO FUE GENERADO por 'flutter build web' (exit code: $BUILD_EXIT_CODE)."
-            echo "Procediendo a copiar 'web/index.html' a 'build/web/' como contingencia."
-
-            # Asegúrate de que build/web directory existe antes de copiar.
-            mkdir -p build/web
-
-            echo "Verificando 'web/index.html' path before copy:"
-            test -f web/index.html && echo "web/index.html FOUND before copy." || echo "web/index.html NOT FOUND before copy. ESTO NO DEBERÍA PASAR YA."
-            
-            # Realiza la copia.
-            cp web/index.html build/web/index.html
-            CP_EXIT_CODE=$? # Captura el código de salida de la copia
-            echo "Comando 'cp' completado con exit code: $CP_EXIT_CODE."
-            
-            if [ $CP_EXIT_CODE -ne 0 ]; then
-              echo "ERROR CRÍTICO: Falló la copia de web/index.html a build/web/index.html."
-              exit 1 # Falla si la copia no pudo realizarse.
-            fi
-            
-            echo "Re-verificando build/web/ contents DESPUÉS de la copia de contingencia:"
-            ls -laR build/web/ || echo "build/web/ directory still not found or empty after copy."
-            
-            echo "********************************************************"
-            
-            # Final check after contingency copy. If still not found, it's a critical error.
-            if [ ! -f build/web/index.html ]; then
-              echo "ERROR CRÍTICO: 'index.html' todavía falta en 'build/web/' incluso después de la copia de contingencia."
-              echo "Full 'build/' directory contents (diagnostic):"
-              ls -laR build/ || true
-              echo "Flutter Doctor (verbose):"
-              flutter doctor -v
-              echo "Searching for Flutter log files:"
-              find . -name "flutter_*.log" || true
-              exit 1 # Falla el paso si index.html realmente falta.
-            fi
-          fi
-          echo "index.html asegurado en 'build/web/'."
-          ls -la build/web/ # Confirmación final del contenido.
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Cargar artefacto para despliegue en Pages
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }} # Usa el token de GitHub para autenticación.
-          publish_dir: ./build/web # Directorio con los archivos web compilados.
-          cname: # Deja este campo vacío si no usas un dominio personalizado.
-          #fin del archivo criminal
+          path: './build/web' # Directorio de salida de la compilación web de Flutter
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build # Este trabajo depende del trabajo 'build'
+    steps:
+      - name: Desplegar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # Acción para desplegar el artefacto a GitHub Pages
