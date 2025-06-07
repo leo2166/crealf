@@ -23,8 +23,8 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.32.2' # <-- ¡Aquí está la versión exacta!
-          cache: true
+          flutter-version: '3.32.2' # <--- ¡VERSIÓN ESPECÍFICA DE FLUTTER A USAR!
+          cache: true # Habilita el caché para pub, puede acelerar builds posteriores
           cache-key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
 
       - name: Obtener dependencias de Flutter
@@ -41,7 +41,7 @@ jobs:
           ls -R build/
 
           echo "Contenido del directorio 'build/web/' después de la compilación:"
-          ls -la build/web/ sitio GitHub Pages
+          ls -la build/web/ # Corregido: Eliminar " sitio GitHub Pages" que estaba al final de esta línea
 
       - name: Cargar artefacto para despliegue en Pages
         uses: actions/upload-pages-artifact@v3
