@@ -9,14 +9,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pages: write
-      id-token: write
+      contents: write # Permiso para escribir en el repositorio (para gh-pages)
+      pages: write # Permiso para desplegar en GitHub Pages
+      id-token: write # Necesario para la autenticación en páginas
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          # Asegura la autenticación al clonar el repositorio, crucial para permisos de escritura.
           token: ${{ secrets.GITHUB_TOKEN }} 
 
       - name: Initial Environment & Directory Check
@@ -34,7 +35,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: 'stable' # Puedes probar 'beta' o 'dev' si tu proyecto lo requiere, o una versión específica como '3.19.6'
 
       - name: Flutter clean and Get dependencies
         run: |
@@ -43,24 +44,69 @@ jobs:
           echo "--- Getting Flutter dependencies ---"
           flutter pub get
 
-      - name: 'Build Flutter web'
-  run: |
-    echo "--- Starting Flutter web build ---"
-    # Intenta compilar la aplicación Flutter para la web con más verbosidad para depuración.
-    # Especificamos el target explícitamente para asegurar que lib/main.dart sea encontrado.
-    flutter build web --release --base-href /crealf/ --verbose --target=lib/main.dart > flutter_build_web_log.txt 2>&1
-    BUILD_EXIT_CODE=$? # Captura el código de salida del comando flutter build
+      - name: Build Flutter web
+        run: |
+          echo "--- Starting Flutter web build ---"
+          # Intenta compilar la aplicación Flutter para la web con más verbosidad para depuración.
+          # ESPECIFICAMOS EL TARGET EXPLÍCITAMENTE PARA RESOLVER "lib/main.dart not found".
+          flutter build web --release --base-href /crealf/ --verbose --target=lib/main.dart > flutter_build_web_log.txt 2>&1
+          BUILD_EXIT_CODE=$? # Captura el código de salida del comando flutter build
+          
+          echo "--- Flutter web build completed with exit code: $BUILD_EXIT_CODE ---"
+          echo "Content of flutter_build_web_log.txt (verbose output):"
+          cat flutter_build_web_log.txt # Muestra el log completo de la compilación
+          echo "--------------------------------------------------------"
 
-    echo "--- Flutter web build completed with exit code: $BUILD_EXIT_CODE ---"
-    echo "Content of flutter_build_web_log.txt (verbose output):"
-    cat flutter_build_web_log.txt # Muestra el log completo de la compilación
-    echo "--------------------------------------------------------"
+          echo "--- Checking build/web/ contents after Flutter build ---"
+          ls -laR build/web/ || echo "build/web/ directory not found or empty after build."
+          echo "--------------------------------------------------------"
 
-    # ... (el resto del script de verificación y copia contingente permanece igual) ...
+          # Comprueba si index.html fue generado por flutter build.
+          if [ ! -f build/web/index.html ]; then
+            echo "********************************************************"
+            echo "ADVERTENCIA: 'index.html' NO FUE GENERADO por 'flutter build web' (exit code: $BUILD_EXIT_CODE)."
+            echo "Procediendo a copiar 'web/index.html' a 'build/web/' como contingencia."
+
+            # Asegúrate de que build/web directory existe antes de copiar.
+            mkdir -p build/web
+
+            echo "Verificando 'web/index.html' path before copy:"
+            test -f web/index.html && echo "web/index.html FOUND before copy." || echo "web/index.html NOT FOUND before copy. ESTO NO DEBERÍA PASAR YA."
+            
+            # Realiza la copia.
+            cp web/index.html build/web/index.html
+            CP_EXIT_CODE=$? # Captura el código de salida de la copia
+            echo "Comando 'cp' completado con exit code: $CP_EXIT_CODE."
+            
+            if [ $CP_EXIT_CODE -ne 0 ]; then
+              echo "ERROR CRÍTICO: Falló la copia de web/index.html a build/web/index.html."
+              exit 1 # Falla si la copia no pudo realizarse.
+            fi
+            
+            echo "Re-verificando build/web/ contents DESPUÉS de la copia de contingencia:"
+            ls -laR build/web/ || echo "build/web/ directory still not found or empty after copy."
+            
+            echo "********************************************************"
+            
+            # Final check after contingency copy. If still not found, it's a critical error.
+            if [ ! -f build/web/index.html ]; then
+              echo "ERROR CRÍTICO: 'index.html' todavía falta en 'build/web/' incluso después de la copia de contingencia."
+              echo "Full 'build/' directory contents (diagnostic):"
+              ls -laR build/ || true
+              echo "Flutter Doctor (verbose):"
+              flutter doctor -v
+              echo "Searching for Flutter log files:"
+              find . -name "flutter_*.log" || true
+              exit 1 # Falla el paso si index.html realmente falta.
+            fi
+          fi
+          echo "index.html asegurado en 'build/web/'."
+          ls -la build/web/ # Confirmación final del contenido.
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/web
-          cname:
+          github_token: ${{ secrets.GITHUB_TOKEN }} # Usa el token de GitHub para autenticación.
+          publish_dir: ./build/web # Directorio con los archivos web compilados.
+          cname: # Deja este campo vacío si no usas un dominio personalizado.
+          #fin del archivo criminal
