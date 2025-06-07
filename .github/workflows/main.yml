@@ -44,12 +44,22 @@ jobs:
           echo "--- Getting Flutter dependencies ---"
           flutter pub get
 
-      - name: Build Flutter web
+     jobs:
+  build:
+    runs-on: ubuntu-latest # O el runner que estés usando
+
+    steps:
+      - uses: actions/checkout@v4 # Asegúrate de que esta línea esté presente
+      # ... (otros pasos como Initial Environment & Directory Check, Setup Flutter, Flutter clean y Get dependencies) ...
+
+      - name: Build Flutter web # Este es el nombre del paso que estamos modificando
         run: |
-          echo "--- Starting Flutter web build ---"
-          # Intenta compilar la aplicación Flutter para la web con más verbosidad para depuración.
-          # ESPECIFICAMOS EL TARGET EXPLÍCITAMENTE PARA RESOLVER "lib/main.dart not found".
-          flutter build web --release --base-href /crealf/ --verbose --target=lib/main.dart > flutter_build_web_log.txt 2>&1
+          # Elimina cualquier línea que intente crear el directorio build/web explícitamente
+          # (Flutter build ya lo hace).
+          # Elimina también el bloque 'if [ ! -f build/web/index.html ]; then' y el 'exit 1'.
+
+          # Esta es la única línea crucial para la compilación web
+          flutter build web --release --base-href=/crealf/-verbose --target=lib/main.dart > flutter_build_web_log.txt 2>&1
           BUILD_EXIT_CODE=$? # Captura el código de salida del comando flutter build
           
           echo "--- Flutter web build completed with exit code: $BUILD_EXIT_CODE ---"
