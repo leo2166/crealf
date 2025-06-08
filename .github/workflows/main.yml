@@ -1,60 +1,40 @@
 name: Implementar Flutter web en Github Pages
-
 on:
   push:
     branches:
-      - main # Asegúrate de que esta es tu rama principal (main o master)
+      - main # Asegúrate de que esta sea tu rama principal
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # Permiso para escribir en el repositorio (necesario para el artifact)
-      pages: write    # Permiso necesario para desplegar en GitHub Pages
-      id-token: write # Necesario para la autenticación en GitHub Pages
-
     steps:
-      - name: Checkout del repositorio
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }} # Asegura la autenticación al clonar el repositorio, crucial para permisos de escritura.
+      - uses: actions/checkout@v4 # Paso para clonar tu repositorio
 
-      - name: Configurar Flutter SDK
+      - name: Listar archivos del repositorio para depurar # <-- NUEVO: Paso para depuración
+        run: |
+          echo "Contenido del directorio raíz del repositorio:"
+          ls -al
+          echo ""
+          echo "Contenido de .github/:"
+          ls -al .github
+          echo ""
+          echo "Contenido de .github/workflows/:"
+          ls -al .github/workflows
+
+      - name: Configurar Flutter SDK # Se usará la versión 3.22.2
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-          flutter-version: '3.32.2' # <--- ¡VERSIÓN ESPECÍFICA DE FLUTTER A USAR!
-          cache: true # Habilita el caché para pub, puede acelerar builds posteriores
-          cache-key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+          flutter-version: '3.22.2' # Versión de Flutter que el runner tiene y tu proyecto ahora soporta
 
       - name: Obtener dependencias de Flutter
-        run: |
-          flutter clean
-          flutter pub get
+        run: flutter pub get
 
       - name: Construir aplicación Flutter web
-        run: |
-          echo "Iniciando compilación web de Flutter con modo verbose..."
-          flutter build web --release --base-href=/crealf/ --verbose
+        run: flutter build web --release
 
-          echo "Contenido del directorio 'build/' después de la compilación:"
-          ls -R build/
-
-          echo "Contenido del directorio 'build/web/' después de la compilación:"
-          ls -la build/web/ # Corregido: Eliminar " sitio GitHub Pages" que estaba al final de esta línea
-
-      - name: Cargar artefacto para despliegue en Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './build/web' # Directorio de salida de la compilación web de Flutter
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build # Este trabajo depende del trabajo 'build'
-    steps:
       - name: Desplegar en GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4 # Acción para desplegar el artefacto a GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.ref == 'refs/heads/main' }} # Despliega solo si estás en la rama 'main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }} # Token de GitHub, ya configurado automáticamente
+          publish_dir: ./build/web # Carpeta donde Flutter genera los archivos web
